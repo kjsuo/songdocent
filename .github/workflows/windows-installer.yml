@@ -1,0 +1,70 @@
+name: Build Windows x64 installer
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Installer version
+        required: true
+        default: '0.1.1'
+  push:
+    branches: [main]
+    paths: ['.github/workflows/windows-installer.yml']
+permissions:
+  contents: read
+jobs:
+  installer:
+    runs-on: windows-latest
+    timeout-minutes: 45
+    env:
+      BUILD_VERSION: ${{ inputs.version || '0.1.1' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 11.25.0
+          cache: true
+          cache_dependency_path: pnpm-lock.yaml
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-pc-windows-msvc
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm test
+      - run: cargo test --locked --manifest-path src-tauri/Cargo.toml --lib
+      - name: Set installer version
+        run: pnpm release:version "$env:BUILD_VERSION"
+      - name: Build Windows x64 NSIS installer
+        run: pnpm tauri build --ci --target x86_64-pc-windows-msvc --bundles nsis
+      - name: Sign and verify installer artifact
+        shell: pwsh
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        run: |
+          $installers = @(Get-ChildItem "src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis" -Filter *.exe)
+          if ($installers.Count -ne 1) { throw "Expected exactly one Windows installer." }
+          New-Item -ItemType Directory -Path installer-artifacts -Force | Out-Null
+          $name = "SongDocent_" + $env:BUILD_VERSION + "_windows-x64-setup.exe"
+          $installerPath = Join-Path "installer-artifacts" $name
+          Copy-Item $installers[0].FullName $installerPath
+          pnpm tauri signer sign --app-version "$env:BUILD_VERSION" "$installerPath"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $env:BUILD_INSTALLER = (Resolve-Path $installerPath).Path
+          node --input-type=module -e "import {readFileSync} from 'node:fs'; import {verifyUpdate} from './scripts/release.mjs'; const f=process.env.BUILD_INSTALLER; const c=JSON.parse(readFileSync('src-tauri/tauri.conf.json','utf8')); verifyUpdate(readFileSync(f),readFileSync(f+'.sig','utf8'),c.plugins.updater.pubkey); console.log('Updater signature verified against the app public key.');"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $hash = (Get-FileHash $installerPath -Algorithm SHA256).Hash.ToLower()
+          "$hash  $name" | Set-Content installer-artifacts/SHA256SUMS.txt
+          "source=$env:GITHUB_SHA" | Set-Content installer-artifacts/build-info.txt
+          "version=$env:BUILD_VERSION" | Add-Content installer-artifacts/build-info.txt
+          "Automatic updates are not configured in this private test installer." | Add-Content installer-artifacts/build-info.txt
+      - uses: actions/upload-artifact@v7
+        with:
+          name: SongDocent-windows-x64-installer-${{ env.BUILD_VERSION }}
+          path: installer-artifacts/
+          if-no-files-found: error
+          retention-days: 14

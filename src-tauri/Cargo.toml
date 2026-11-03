@@ -1,0 +1,61 @@
+[package]
+name = "songdocent"
+version = "0.1.0"
+description = "SongDocent cross-platform desktop app"
+authors = ["SongDocent"]
+license = "MIT"
+repository = "https://github.com/kjsuo/songdocent"
+edition = "2021"
+
+[lib]
+name = "songdocent_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+base64 = "0.22"
+hmac = "0.12"
+keyring = { version = "3", features = ["apple-native", "windows-native"] }
+quick-xml = "0.41.0"
+reqwest = { version = "0.12", features = ["blocking", "json", "rustls-tls"], default-features = false }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+json5 = "0.4"
+sha1 = "0.10"
+tauri = { version = "2", features = [] }
+tauri-plugin-opener = "2.5.4"
+tauri-plugin-os = "2.3.2"
+tauri-plugin-process = "2"
+tempfile = "3"
+toml = "0.8"
+
+[target.'cfg(unix)'.dependencies]
+libc = "0.2"
+
+[target.'cfg(target_os = "macos")'.dependencies]
+objc2 = "0.6.4"
+objc2-foundation = { version = "0.3.2", default-features = false, features = [
+  "std",
+  "NSObject",
+  "NSNotification",
+  "NSDistributedNotificationCenter",
+  "NSString",
+] }
+
+[target.'cfg(target_os = "windows")'.dependencies]
+windows = { version = "0.62.2", features = [
+  "Foundation",
+  "Foundation_Collections",
+  "Media_Control",
+  "Storage_Streams",
+  "Win32_Foundation",
+  "Win32_System_WinRT",
+  "Win32_System_JobObjects",
+  "Win32_System_Threading",
+  "Win32_Security",
+] }
+
+[target.'cfg(any(target_os = "macos", target_os = "windows"))'.dependencies]
+tauri-plugin-updater = "2"

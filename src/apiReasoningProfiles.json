@@ -1,0 +1,165 @@
+{
+  "gemini": [
+    {
+      "prefixes": [
+        "gemini-3-pro"
+      ],
+      "levels": [
+        "low",
+        "high"
+      ]
+    },
+    {
+      "prefixes": [
+        "gemini-3.1-pro",
+        "gemini-3.7-flash",
+        "gemini-3.8-flash",
+        "gemini-4-argon",
+        "gemini-2.5-pro",
+        "gemini-2.5-flash",
+        "gemini-2.5-flash-lite"
+      ],
+      "levels": [
+        "low",
+        "medium",
+        "high"
+      ]
+    },
+    {
+      "prefixes": [
+        "gemini-3.1-flash-lite",
+        "gemini-3.5-flash-lite",
+        "gemini-3.5-flash",
+        "gemini-3.6-flash",
+        "gemini-3-flash"
+      ],
+      "levels": [
+        "minimal",
+        "low",
+        "medium",
+        "high"
+      ]
+    }
+  ],
+  "openai": [
+    {
+      "prefixes": [
+        "gpt-6.1-terra"
+      ],
+      "levels": [
+        "none",
+        "low",
+        "medium",
+        "high",
+        "xhigh",
+        "max"
+      ]
+    },
+    {
+      "prefixes": [
+        "gpt-6-luna",
+        "gpt-6-sol",
+        "gpt-6.1-sol",
+        "gpt-6-astra"
+      ],
+      "levels": [
+        "low",
+        "medium",
+        "high",
+        "xhigh",
+        "max"
+      ]
+    },
+    {
+      "prefixes": [
+        "gpt-5.2",
+        "gpt-5.3",
+        "gpt-5.4",
+        "gpt-5.5"
+      ],
+      "levels": [
+        "none",
+        "low",
+        "medium",
+        "high",
+        "xhigh"
+      ]
+    },
+    {
+      "prefixes": [
+        "gpt-5.1"
+      ],
+      "levels": [
+        "none",
+        "low",
+        "medium",
+        "high"
+      ]
+    },
+    {
+      "prefixes": [
+        "gpt-5",
+        "gpt-5-mini",
+        "gpt-5-nano"
+      ],
+      "levels": [
+        "minimal",
+        "low",
+        "medium",
+        "high"
+      ]
+    },
+    {
+      "prefixes": [
+        "o1",
+        "o3",
+        "o4-mini"
+      ],
+      "levels": [
+        "low",
+        "medium",
+        "high"
+      ]
+    }
+  ],
+  "claude": [
+    {
+      "prefixes": [
+        "claude-haiku-5-5",
+        "claude-sonnet-5",
+        "claude-opus-5",
+        "claude-opus-4-7",
+        "claude-opus-4-8"
+      ],
+      "levels": [
+        "low",
+        "medium",
+        "high",
+        "xhigh",
+        "max"
+      ]
+    },
+    {
+      "prefixes": [
+        "claude-opus-4-6",
+        "claude-sonnet-4-6"
+      ],
+      "levels": [
+        "low",
+        "medium",
+        "high",
+        "max"
+      ]
+    },
+    {
+      "prefixes": [
+        "claude-opus-4-5"
+      ],
+      "levels": [
+        "low",
+        "medium",
+        "high"
+      ]
+    }
+  ]
+}
