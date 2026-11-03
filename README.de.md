@@ -46,7 +46,7 @@ Die Musik wird wie gewohnt in Ihrer Spotify- oder Apple-Music-App abgespielt. So
 
 ## Vorstellungsvideo
 
-https://github.com/user-attachments/assets/516ed07d-9ee1-482d-9330-efef10c3377b
+[SongDocent · V6](docs/media/songdocent-intro.mp4)
 
 30-sekündige Vorstellung · V6. Einige Übergänge der Benutzeroberfläche, Übersetzungen und Anmerkungen dienen der Veranschaulichung. [Videoquellen](docs/media/v6-credits.md)
 
