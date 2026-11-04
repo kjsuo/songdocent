@@ -46,7 +46,7 @@ La música se reproduce en la aplicación de Spotify o Apple Music que utilizas 
 
 ## Vídeo de presentación
 
-[SongDocent · V7](docs/media/songdocent-intro.mp4)
+https://github.com/user-attachments/assets/f8017c97-470a-4ff9-aa55-8ef45ebfbb02
 
 Presentación de 30 segundos · V7. Algunas transiciones de la interfaz, traducciones y anotaciones son ilustrativas. [Créditos del vídeo](docs/media/v7-credits.md)
 

@@ -46,7 +46,7 @@ Reproduza suas músicas no app do Spotify ou do Apple Music que você já usa. O
 
 ## Vídeo de apresentação
 
-[SongDocent · V7](docs/media/songdocent-intro.mp4)
+https://github.com/user-attachments/assets/f8017c97-470a-4ff9-aa55-8ef45ebfbb02
 
 Apresentação de 30 segundos · V7. Algumas transições da interface, traduções e anotações são ilustrativas. [Créditos do vídeo](docs/media/v7-credits.md)
 

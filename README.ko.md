@@ -46,7 +46,7 @@ SongDocent는 Spotify와 Apple Music으로 음악을 들을 때 곁에 두는 �
 
 ## 소개 영상
 
-[SongDocent · V7](docs/media/songdocent-intro.mp4)
+https://github.com/user-attachments/assets/f8017c97-470a-4ff9-aa55-8ef45ebfbb02
 
 30초 소개 영상 · V7. 일부 UI 전환과 번역·주석은 기능 설명을 위한 연출입니다. [영상 크레딧](docs/media/v7-credits.md)
 

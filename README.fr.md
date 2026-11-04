@@ -46,7 +46,7 @@ La musique se lit dans votre application habituelle Spotify ou Apple Music. Song
 
 ## Vidéo de présentation
 
-[SongDocent · V7](docs/media/songdocent-intro.mp4)
+https://github.com/user-attachments/assets/f8017c97-470a-4ff9-aa55-8ef45ebfbb02
 
 Présentation de 30 secondes · V7. Certaines transitions de l’interface, traductions et annotations sont illustratives. [Crédits de la vidéo](docs/media/v7-credits.md)
 

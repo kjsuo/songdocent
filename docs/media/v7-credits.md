@@ -8,4 +8,4 @@ The 30-second introduction uses illustrative UI transitions, translations, and a
 - Song and artwork shown in the demo: Creepy Nuts, “Otonoke”. The song recording is not used as the background music. Artwork, music-service UI, and trademarks belong to their respective owners.
 - SongDocent UI and brand assets come from the project. Included fonts and icons retain their respective licenses. See the [font license](../../public/fonts/Geist-LICENSE.txt), [provider logo notices](../../public/provider-logos/README.md), and [other notices](../../public/licenses/).
 
-The 30-second H.264/AAC introduction is stored in this repository as [songdocent-intro.mp4](songdocent-intro.mp4), so its link does not depend on attachments in another repository. The production project and source audio remain in the private local backup.
+The README embeds the V7 introduction using a GitHub video attachment uploaded to this repository. A matching H.264/AAC copy is also stored as [songdocent-intro.mp4](songdocent-intro.mp4). The production project and source audio remain in the private local backup.
