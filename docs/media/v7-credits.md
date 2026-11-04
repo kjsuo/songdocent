@@ -1,4 +1,4 @@
-# SongDocent V6 video credits
+# SongDocent V7 video credits
 
 The 30-second introduction uses illustrative UI transitions, translations, and annotations. It is not a recording of a completed AI request. SongDocent is an independent project and is not affiliated with Spotify or Apple Music.
 

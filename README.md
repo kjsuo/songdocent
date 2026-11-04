@@ -46,9 +46,9 @@ Play music in the Spotify or Apple Music app you normally use. SongDocent follow
 
 ## Introduction video
 
-[SongDocent · V6](docs/media/songdocent-intro.mp4)
+[SongDocent · V7](docs/media/songdocent-intro.mp4)
 
-30-second introduction · V6. Some UI transitions, translations, and annotations are illustrative. [Video credits](docs/media/v6-credits.md)
+30-second introduction · V7. Some UI transitions, translations, and annotations are illustrative. [Video credits](docs/media/v7-credits.md)
 
 ## Screenshots
 

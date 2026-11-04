@@ -46,9 +46,9 @@ SongDocent 是你在 Spotify 和 Apple Music 上听歌时的私人音乐导赏�
 
 ## 介绍视频
 
-[SongDocent · V6](docs/media/songdocent-intro.mp4)
+[SongDocent · V7](docs/media/songdocent-intro.mp4)
 
-30秒介绍视频 · V6。部分界面过渡、翻译和注释为功能演示效果。 [视频素材说明](docs/media/v6-credits.md)
+30秒介绍视频 · V7。部分界面过渡、翻译和注释为功能演示效果。 [视频素材说明](docs/media/v7-credits.md)
 
 ## 截图
 

@@ -46,9 +46,9 @@ SongDocentは、SpotifyやApple Musicで音楽を聴くときに寄り添う、�
 
 ## 紹介動画
 
-[SongDocent · V6](docs/media/songdocent-intro.mp4)
+[SongDocent · V7](docs/media/songdocent-intro.mp4)
 
-30秒の紹介動画 · V6。一部のUI遷移、翻訳、注釈は機能説明のための演出です。 [動画クレジット](docs/media/v6-credits.md)
+30秒の紹介動画 · V7。一部のUI遷移、翻訳、注釈は機能説明のための演出です。 [動画クレジット](docs/media/v7-credits.md)
 
 ## スクリーンショット
 
