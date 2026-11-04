@@ -1,22 +1,4 @@
 <p align="center">
-  <a href="README.ko.md"><kbd>한국어</kbd></a>
-  ·
-  <a href="README.md"><kbd>English</kbd></a>
-  ·
-  <a href="README.ja.md"><kbd>日本語</kbd></a>
-  ·
-  <a href="README.es.md"><kbd>Español</kbd></a>
-  ·
-  <a href="README.fr.md"><kbd>Français</kbd></a>
-  ·
-  <a href="README.de.md"><kbd>Deutsch</kbd></a>
-  ·
-  <a href="README.pt-BR.md"><kbd>Português (Brasil)</kbd></a>
-  ·
-  <a href="README.zh-CN.md"><strong><kbd>简体中文</kbd></strong></a>
-</p>
-
-<p align="center">
   <img src="src-tauri/icons/128x128@2x.png" width="96" height="96" alt="SongDocent 图标" />
 </p>
 
@@ -42,6 +24,24 @@
 
 <p align="center">
   macOS · Windows (Beta) &nbsp;|&nbsp; Tauri 2 · React · Rust &nbsp;|&nbsp; MIT
+</p>
+
+<p align="center">
+  <a href="README.ko.md"><kbd>한국어</kbd></a>
+  ·
+  <a href="README.md"><kbd>English</kbd></a>
+  ·
+  <a href="README.ja.md"><kbd>日本語</kbd></a>
+  ·
+  <a href="README.es.md"><kbd>Español</kbd></a>
+  ·
+  <a href="README.fr.md"><kbd>Français</kbd></a>
+  ·
+  <a href="README.de.md"><kbd>Deutsch</kbd></a>
+  ·
+  <a href="README.pt-BR.md"><kbd>Português (Brasil)</kbd></a>
+  ·
+  <a href="README.zh-CN.md"><strong><kbd>简体中文</kbd></strong></a>
 </p>
 
 ---
