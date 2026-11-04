@@ -48,7 +48,7 @@ La música se reproduce en la aplicación de Spotify o Apple Music que utilizas 
 
 https://github.com/user-attachments/assets/f8017c97-470a-4ff9-aa55-8ef45ebfbb02
 
-Presentación de 30 segundos · V7. Algunas transiciones de la interfaz, traducciones y anotaciones son ilustrativas. [Créditos del vídeo](docs/media/v7-credits.md)
+[Créditos del vídeo](docs/media/v7-credits.md)
 
 ## Capturas de pantalla
 

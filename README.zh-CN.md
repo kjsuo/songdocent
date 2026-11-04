@@ -48,7 +48,7 @@ SongDocent 是你在 Spotify 和 Apple Music 上听歌时的私人音乐导赏�
 
 https://github.com/user-attachments/assets/f8017c97-470a-4ff9-aa55-8ef45ebfbb02
 
-30秒介绍视频 · V7。部分界面过渡、翻译和注释为功能演示效果。 [视频素材说明](docs/media/v7-credits.md)
+[视频素材说明](docs/media/v7-credits.md)
 
 ## 截图
 

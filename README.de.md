@@ -48,7 +48,7 @@ Die Musik wird wie gewohnt in Ihrer Spotify- oder Apple-Music-App abgespielt. So
 
 https://github.com/user-attachments/assets/f8017c97-470a-4ff9-aa55-8ef45ebfbb02
 
-30-sekündige Vorstellung · V7. Einige Übergänge der Benutzeroberfläche, Übersetzungen und Anmerkungen dienen der Veranschaulichung. [Videoquellen](docs/media/v7-credits.md)
+[Videoquellen](docs/media/v7-credits.md)
 
 ## Bildschirmfotos
 
