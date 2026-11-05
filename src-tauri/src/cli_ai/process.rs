@@ -176,6 +176,20 @@ struct CapturedOutput {
     stderr: String,
 }
 
+fn cli_search_path(executable: &Path) -> Result<std::ffi::OsString, String> {
+    let mut paths = Vec::new();
+    if let Some(parent) = executable.parent().filter(|parent| parent.is_absolute()) {
+        paths.push(parent.to_path_buf());
+    }
+    for path in super::search_paths() {
+        if path.is_absolute() && !paths.contains(&path) {
+            paths.push(path);
+        }
+    }
+    std::env::join_paths(paths)
+        .map_err(|_| "CLI_PROCESS_FAILED: invalid CLI runtime search path".to_string())
+}
+
 pub fn run(
     path: &Path,
     args: &[String],
@@ -216,6 +230,7 @@ fn run_captured(
     command
         .args(args)
         .current_dir(cwd)
+        .env("PATH", cli_search_path(path)?)
         .envs(env.iter().cloned())
         .env("NO_COLOR", "1")
         .env("CI", "1")
@@ -362,6 +377,28 @@ fn run_captured(
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[cfg(unix)]
+    #[test]
+    fn launches_cli_with_a_runtime_installed_beside_it() {
+        use std::os::unix::fs::PermissionsExt;
+
+        let installation = tempfile::tempdir().unwrap();
+        let working_dir = tempfile::tempdir().unwrap();
+        let executable = installation.path().join("cli-fixture");
+        let runtime = installation.path().join("songdocent-fixture-runtime");
+        std::fs::write(&executable, "#!/usr/bin/env songdocent-fixture-runtime\n").unwrap();
+        std::fs::write(&runtime, "#!/bin/sh\nprintf 'runtime-ready\\n'\n").unwrap();
+        for path in [&executable, &runtime] {
+            std::fs::set_permissions(path, std::fs::Permissions::from_mode(0o755)).unwrap();
+        }
+        let request = Request::new("runtime-path-test".into()).unwrap();
+        let output = run(
+            &executable, &[], &[], working_dir.path(), "", Duration::from_secs(5),
+            &request, |_| Ok(()),
+        ).unwrap();
+        assert_eq!(output, "runtime-ready\n");
+    }
+
     #[cfg(unix)]
     #[test]
     fn pipes_large_utf8_and_drains_stderr() {

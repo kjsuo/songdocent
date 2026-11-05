@@ -231,7 +231,7 @@ fn scan(provider: Provider, options: &CliOptions, request: &Request) -> CliStatu
             request,
         )?;
         let required = match provider {
-            Provider::Codex => vec!["--json", "--output-schema", "--ignore-user-config"],
+            Provider::Codex => vec!["--json", "--output-schema"],
             Provider::Claude => vec![
                 "--output-format",
                 "--tools",
@@ -472,11 +472,8 @@ pub async fn list_cli_models(
         let mut live = false;
         match provider {
             Provider::Codex => {
-                let mut args = vec!["app-server".into(), "--ignore-user-config".into()];
-                // app-server accepts config overrides, but --ignore-user-config belongs to exec.
-                args.truncate(1);
-                args.extend(adapters::codex_config_args());
-                args.extend(["-c".into(), "mcp_servers={}".into(), "-c".into(), "hooks={}".into()]);
+                let mut args = vec!["app-server".into()];
+                args.extend(adapters::codex_restricted_args()?);
                 let input = "{\"id\":1,\"method\":\"initialize\",\"params\":{\"clientInfo\":{\"name\":\"songdocent\",\"version\":\"0.1.0\"}}}\n{\"method\":\"initialized\"}\n{\"id\":2,\"method\":\"model/list\",\"params\":{\"limit\":100}}\n";
                 let result = process::run(&path, &args, &[], dir.path(), input, Duration::from_secs(20), &request, |line| {
                     if let Ok(event) = serde_json::from_str::<Value>(line) { if event["id"] == 2 {
@@ -606,8 +603,8 @@ mod tests {
         assert_eq!(unsupported.installation, CliInstallation::Unsupported);
         assert_eq!(unsupported.version.as_deref(), Some("1.2.3"));
         assert!(unsupported.path.is_some());
-        assert_eq!(unsupported.missing_features, ["--output-schema", "--ignore-user-config"]);
-        assert_eq!(serde_json::to_value(&unsupported).unwrap()["missingFeatures"], json!(["--output-schema", "--ignore-user-config"]));
+        assert_eq!(unsupported.missing_features, ["--output-schema"]);
+        assert_eq!(serde_json::to_value(&unsupported).unwrap()["missingFeatures"], json!(["--output-schema"]));
 
         let version_failure = scan_fixture("exit 1");
         assert_eq!(version_failure.installation, CliInstallation::CheckFailed);
@@ -631,7 +628,7 @@ mod tests {
     #[test]
     fn scan_accepts_supported_features_without_a_minimum_version_guess() {
         let status = scan_fixture(
-            r#"if [ "$1" = --version ]; then echo custom-build; else echo '--json --output-schema --ignore-user-config'; fi"#,
+            r#"if [ "$1" = --version ]; then echo custom-build; else echo '--json --output-schema'; fi"#,
         );
         assert_eq!(status.installation, CliInstallation::Installed);
         assert_eq!(status.version.as_deref(), Some("custom-build"));
@@ -675,6 +672,19 @@ mod tests {
         assert_eq!(status.installation, CliInstallation::CheckFailed);
         assert_eq!(status.version.as_deref(), Some("1.4.8"));
         assert!(status.message.is_some());
+        assert!(status.missing_features.is_empty());
+    }
+
+    #[test]
+    #[ignore = "uses installed Codex CLI metadata only, without authentication or account usage"]
+    fn live_codex_scan_without_authentication() {
+        let status = scan(
+            Provider::Codex,
+            &CliOptions::default(),
+            &Request::new(request_id()).unwrap(),
+        );
+        assert_eq!(status.installation, CliInstallation::Installed, "{:?}", status.message);
+        assert!(status.version.as_deref().is_some_and(|version| !version.is_empty()));
         assert!(status.missing_features.is_empty());
     }
 

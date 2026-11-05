@@ -5,6 +5,7 @@ use std::path::Path;
 pub struct Invocation {
     pub args: Vec<String>,
     pub env: Vec<(String, String)>,
+    settings_file: Option<tempfile::NamedTempFile>,
 }
 
 pub fn invocation(
@@ -17,6 +18,7 @@ pub fn invocation(
 ) -> Result<Invocation, String> {
     let mut args: Vec<String>;
     let mut env = vec![];
+    let mut settings_file = None;
     let selected_model = (!model.is_empty() && model != "__cli_default__").then_some(model);
     match provider {
         Provider::Antigravity => {
@@ -43,23 +45,13 @@ pub fn invocation(
                 "--json",
                 "--ephemeral",
                 "--skip-git-repo-check",
-                "--ignore-user-config",
                 "--sandbox",
                 "read-only",
             ]
             .into_iter()
             .map(String::from)
             .collect();
-            args.extend(codex_config_args());
-            for config in [
-                "features.shell_tool=false",
-                "features.multi_agent=false",
-                "features.plugins=false",
-                "mcp_servers={}",
-                "hooks={}",
-            ] {
-                args.extend(["-c".into(), config.into()]);
-            }
+            args.extend(codex_restricted_args()?);
             args.extend([
                 "-c".into(),
                 format!(
@@ -114,22 +106,20 @@ pub fn invocation(
             .into_iter()
             .map(String::from)
             .collect();
-            let mut settings = json!({"disableAllHooks":true});
+            let mut saved_settings = Value::Null;
             if let Some(home) = std::env::var_os("HOME").or_else(|| std::env::var_os("USERPROFILE"))
             {
                 if let Ok(text) =
                     std::fs::read_to_string(Path::new(&home).join(".claude/settings.json"))
                 {
                     if let Ok(saved) = serde_json::from_str::<Value>(&text) {
-                        for key in ["model", "effortLevel", "env"] {
-                            if let Some(value) = saved.get(key) {
-                                settings[key] = value.clone();
-                            }
-                        }
+                        saved_settings = saved;
                     }
                 }
             }
-            args.extend(["--settings".into(), settings.to_string()]);
+            let settings = claude_settings_invocation(&saved_settings, dir)?;
+            args.extend(settings.args);
+            settings_file = settings.settings_file;
             if search {
                 args.extend(["--allowedTools".into(), "WebSearch,WebFetch".into()]);
             }
@@ -203,7 +193,7 @@ pub fn invocation(
             ]);
         }
     }
-    Ok(Invocation { args, env })
+    Ok(Invocation { args, env, settings_file })
 }
 
 fn antigravity_agent(dir: &Path, search: bool) -> Result<String, String> {
@@ -217,6 +207,27 @@ fn antigravity_agent(dir: &Path, search: bool) -> Result<String, String> {
     std::fs::write(agents.join(format!("{name}.md")), profile)
         .map_err(|error| format!("CLI_PROCESS_FAILED: {error}"))?;
     Ok(name)
+}
+
+fn claude_settings_invocation(saved: &Value, dir: &Path) -> Result<Invocation, String> {
+    let mut settings = json!({"disableAllHooks":true});
+    for key in ["model", "effortLevel", "env"] {
+        if let Some(value) = saved.get(key) {
+            settings[key] = value.clone();
+        }
+    }
+    let mut file = tempfile::Builder::new()
+        .prefix("claude-settings-")
+        .suffix(".json")
+        .tempfile_in(dir)
+        .map_err(|_| "CLI_PROCESS_FAILED: could not create private Claude settings".to_string())?;
+    serde_json::to_writer(file.as_file_mut(), &settings)
+        .map_err(|_| "CLI_PROCESS_FAILED: could not write private Claude settings".to_string())?;
+    Ok(Invocation {
+        args: vec!["--settings".into(), file.path().to_string_lossy().into_owned()],
+        env: vec![],
+        settings_file: Some(file),
+    })
 }
 
 fn opencode_provider_settings() -> Value {
@@ -298,7 +309,7 @@ pub fn opencode_environment(dir: &Path) -> Result<Vec<(String, String)>, String>
     ])
 }
 
-pub fn codex_config_args() -> Vec<String> {
+pub fn codex_restricted_args() -> Result<Vec<String>, String> {
     let home = std::env::var_os("CODEX_HOME")
         .map(std::path::PathBuf::from)
         .or_else(|| {
@@ -306,23 +317,60 @@ pub fn codex_config_args() -> Vec<String> {
                 .or_else(|| std::env::var_os("USERPROFILE"))
                 .map(|home| Path::new(&home).join(".codex"))
         });
-    let config = home
-        .and_then(|home| std::fs::read_to_string(home.join("config.toml")).ok())
-        .and_then(|text| text.parse::<toml::Table>().ok())
-        .unwrap_or_default();
+    let config = match home.map(|home| std::fs::read_to_string(home.join("config.toml"))) {
+        None => toml::Table::new(),
+        Some(Ok(text)) => text.parse::<toml::Table>()
+            .map_err(|_| "CLI_PROCESS_FAILED: could not parse Codex settings safely".to_string())?,
+        Some(Err(error)) if error.kind() == std::io::ErrorKind::NotFound => toml::Table::new(),
+        Some(Err(_)) => return Err("CLI_PROCESS_FAILED: could not read Codex settings safely".into()),
+    };
+    Ok(codex_restricted_args_from(&config))
+}
+
+fn codex_restricted_args_from(config: &toml::Table) -> Vec<String> {
     let mut args = vec![];
     for key in [
-        "model",
-        "model_provider",
-        "model_providers",
-        "model_reasoning_effort",
-        "service_tier",
-        "cli_auth_credentials_store",
-        "forced_chatgpt_workspace_id",
+        "features.shell_tool=false",
+        "features.unified_exec=false",
+        "features.js_repl=false",
+        "features.js_repl_tools_only=false",
+        "features.code_mode=false",
+        "features.code_mode_host=false",
+        "features.code_mode_only=false",
+        "features.multi_agent=false",
+        "features.multi_agent_v2=false",
+        "features.plugins=false",
+        "features.apps=false",
+        "features.enable_mcp_apps=false",
+        "features.browser_use=false",
+        "features.browser_use_external=false",
+        "features.computer_use=false",
+        "features.hooks=false",
+        "features.memories=false",
+        "notify=[]",
+        "otel.log_user_prompt=false",
     ] {
-        if let Some(value) = config.get(key) {
-            args.extend(["-c".into(), format!("{key}={value}")]);
+        args.extend(["-c".into(), key.into()]);
+    }
+    // Codex merges config tables; an empty mcp_servers table does not disable saved servers.
+    let mut servers = toml::Table::new();
+    let mut disable_servers = |config: &toml::Table| {
+        if let Some(configured) = config.get("mcp_servers").and_then(toml::Value::as_table) {
+            for name in configured.keys() {
+                servers.insert(name.clone(), toml::Value::Table(toml::Table::from_iter([
+                    ("enabled".into(), toml::Value::Boolean(false)),
+                ])));
+            }
         }
+    };
+    disable_servers(config);
+    if let Some(profiles) = config.get("profiles").and_then(toml::Value::as_table) {
+        for profile in profiles.values().filter_map(toml::Value::as_table) {
+            disable_servers(profile);
+        }
+    }
+    if !servers.is_empty() {
+        args.extend(["-c".into(), format!("mcp_servers={}", toml::Value::Table(servers))]);
     }
     args
 }
@@ -330,6 +378,115 @@ pub fn codex_config_args() -> Vec<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn claude_configuration_keeps_credentials_out_of_arguments() {
+        let saved = json!({"model":"sonnet","env":{"ANTHROPIC_AUTH_TOKEN":"dummy-claude-token"}});
+        let dir = tempfile::tempdir().unwrap();
+        let invocation = claude_settings_invocation(&saved, dir.path()).unwrap();
+        assert!(!invocation.args.iter().any(|arg| arg.contains("dummy-claude-token")), "Claude credential entered argv");
+        let path = std::path::PathBuf::from(&invocation.args[1]);
+        let settings: Value = serde_json::from_slice(&std::fs::read(&path).unwrap()).unwrap();
+        assert_eq!(settings["env"], saved["env"]);
+        assert_eq!(settings["model"], saved["model"]);
+        assert_eq!(settings["disableAllHooks"], true);
+        #[cfg(unix)] {
+            use std::os::unix::fs::PermissionsExt;
+            assert_eq!(std::fs::metadata(&path).unwrap().permissions().mode() & 0o777, 0o600);
+        }
+        drop(invocation);
+        assert!(!path.exists());
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn claude_settings_remain_available_to_children_and_are_removed_after_each_outcome() {
+        use super::super::process::{self, Request};
+        use std::time::Duration;
+
+        let dir = tempfile::tempdir().unwrap();
+        for outcome in ["success", "spawn-failure", "timeout", "cancelled"] {
+            let invocation = claude_settings_invocation(
+                &json!({"env":{"ANTHROPIC_AUTH_TOKEN":"dummy-lifecycle-token"}}),
+                dir.path(),
+            ).unwrap();
+            let path = std::path::PathBuf::from(&invocation.args[1]);
+            let request = Request::new(format!("claude-settings-{outcome}")).unwrap();
+            let script = if outcome == "success" {
+                "test -r \"$1\" || exit 41; printf 'settings-ready\\n'"
+            } else {
+                "test -r \"$1\" || exit 41; printf 'settings-ready\\n'; sleep 30"
+            };
+            let args = ["-c".into(), script.into(), "fixture".into(), path.to_string_lossy().into_owned()];
+            let mut child_read_settings = false;
+            let result = process::run(
+                Path::new(if outcome == "spawn-failure" { "/nonexistent-songdocent-cli" } else { "/bin/sh" }),
+                &args,
+                &[],
+                dir.path(),
+                "",
+                if outcome == "timeout" { Duration::from_millis(100) } else { Duration::from_secs(5) },
+                &request,
+                |line| {
+                    child_read_settings |= line == "settings-ready";
+                    if outcome == "cancelled" { process::cancel(&request.id); }
+                    Ok(())
+                },
+            );
+            assert_eq!(child_read_settings, outcome != "spawn-failure");
+            match outcome {
+                "success" => assert_eq!(result.unwrap(), "settings-ready\n"),
+                "spawn-failure" => assert!(result.unwrap_err().starts_with("CLI_PROCESS_FAILED")),
+                "timeout" => assert!(result.unwrap_err().starts_with("CLI_TIMEOUT")),
+                "cancelled" => assert!(result.unwrap_err().starts_with("CLI_CANCELLED")),
+                _ => unreachable!(),
+            }
+            assert!(path.exists());
+            drop(invocation);
+            assert!(!path.exists());
+        }
+    }
+
+    #[test]
+    fn codex_configuration_keeps_all_provider_credentials_out_of_arguments() {
+        let config: toml::Table = toml::from_str(r#"
+model_provider = "custom"
+[model_providers.custom]
+name = "Custom"
+base_url = "https://example.test/v1?token=dummy-url-token"
+experimental_bearer_token = "dummy-codex-token"
+http_headers = { Authorization = "dummy-header-token" }
+query_params = { key = "dummy-query-token" }
+"#).unwrap();
+        let args = codex_restricted_args_from(&config);
+        assert!(!args.iter().any(|arg| arg.contains("dummy-")), "Codex credential entered argv");
+    }
+
+    #[test]
+    fn codex_restrictions_disable_saved_servers_and_execution_features() {
+        let config: toml::Table = toml::from_str(r#"
+[mcp_servers."private.server"]
+command = "private-command"
+env = { API_KEY = "dummy-mcp-token" }
+[profiles.custom.mcp_servers."quoted\"server"]
+url = "https://example.test?key=dummy-server-token"
+"#).unwrap();
+        let args = codex_restricted_args_from(&config);
+        let mut overrides = toml::Table::new();
+        for pair in args.chunks_exact(2) {
+            assert_eq!(pair[0], "-c");
+            let value: toml::Table = pair[1].parse().unwrap();
+            overrides.extend(value);
+        }
+        assert!(!args.iter().any(|arg| arg.contains("dummy-") || arg.contains("private-command")));
+        let servers = overrides["mcp_servers"].as_table().unwrap();
+        assert_eq!(servers["private.server"]["enabled"].as_bool(), Some(false));
+        assert_eq!(servers["quoted\"server"]["enabled"].as_bool(), Some(false));
+        for feature in ["shell_tool", "unified_exec", "js_repl", "code_mode", "code_mode_host", "multi_agent", "multi_agent_v2", "plugins", "apps", "enable_mcp_apps", "browser_use", "computer_use", "hooks", "memories"] {
+            assert!(args.iter().any(|arg| arg == &format!("features.{feature}=false")));
+        }
+        assert!(args.iter().any(|arg| arg == "notify=[]"));
+    }
     #[test]
     fn antigravity_limits_tools_to_the_selected_search_mode() {
         for search in [false, true] {
