@@ -40,6 +40,7 @@ jobs:
           Copy-Item "$releaseDir/songdocent.exe" "portable/SongDocent.exe"
           Get-ChildItem $releaseDir -Filter *.dll | Copy-Item -Destination portable
           Copy-Item LICENSE portable
+          Copy-Item NOTICE portable
           Copy-Item -Recurse public/licenses portable/licenses
           Copy-Item public/fonts/Geist-LICENSE.txt portable/Geist-LICENSE.txt
           Copy-Item public/provider-logos/LICENSE portable/Provider-Icons-LICENSE.txt

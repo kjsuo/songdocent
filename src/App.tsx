@@ -1,16 +1,17 @@
 import { useAppUpdates } from "./appUpdates";
 import { UpdateSettings } from "./UpdateSettings";
 import { useMemo, useRef, useEffect, useLayoutEffect, useState, type MouseEvent } from "react";
-import { Play, Pause, SkipBack, SkipForward, Globe, ChevronDown, Sparkles, Settings as SettingsIcon, Trash2 } from "lucide-react";
+import { Play, Pause, SkipBack, SkipForward, Globe, ChevronDown, Settings as SettingsIcon, Trash2 } from "lucide-react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { useDesktopPolling, type AnnotationDensity } from "./useDesktopPolling";
 import { next, pause, play, prev, seek } from "./playerControls";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { LangCode, dictionary, mapNavigatorLanguage } from "./i18n";
 import { initialTranslationLanguage } from "./translationLanguages";
 import { TranslationIcon } from "./TranslationIcon";
 import { WaitingForMusic } from "./WaitingForMusic";
-import { AlbumBackground } from "./AlbumBackground";
+import { AmllBackground } from "./AmllBackground";
+import { AmllLyrics, type AmllLine } from "./AmllLyrics";
 import { LyricSelectionHint } from "./LyricSelectionHint";
 import { getTranslationActionMode } from "./translationAction";
 import { type SettingsSection } from "./settings";
@@ -18,7 +19,7 @@ import { SettingsModal } from "./SettingsModal";
 import { AppErrorNotice } from "./AppErrorNotice";
 import { useAppError } from "./AppErrorProvider";
 import { formatAnnotationLineBreaks, htmlLangForText, lineBreakClassForLang } from "./textBreaks";
-import { buildLyricsView, calculateLyricScrollTop, findActiveLyricIndex, getLyricAnchorRatio } from "./lyricsView";
+import { buildLyricsView, getLyricAnchorRatio } from "./lyricsView";
 import { readLyricAnnotationSelection, shouldShowLyricAnnotation, type LyricAnnotationSelection } from "./lyricSelection";
 import { DESKTOP_PLATFORM } from "./platform/runtimePlatform";
 import { SetupWizard, type SetupWizardMode } from "./setup/SetupWizard";
@@ -188,8 +189,6 @@ function PlayerApp({
     translationPending,
   });
 
-  const lyricsContainerRef = useRef<HTMLDivElement>(null);
-  const [autoScrollEnabled, setAutoScrollEnabled] = useState(true);
   const [lyricSelection, setLyricSelection] = useState<LyricAnnotationSelection | null>(null);
   const [requestedAnnotationLines, setRequestedAnnotationLines] = useState<ReadonlySet<string>>(() => new Set());
   useEffect(() => {
@@ -200,7 +199,6 @@ function PlayerApp({
 
   const lastTrackIdRef = useRef<string | undefined>(track?.id);
   const trackChangeTimeRef = useRef<number>(0);
-  const [nowTs, setNowTs] = useState(() => Date.now());
   // 1. 트랙 변경 감지
   useEffect(() => {
     if (track?.id !== lastTrackIdRef.current) {
@@ -208,9 +206,6 @@ function PlayerApp({
       trackChangeTimeRef.current = Date.now();
       // 트랙 변경 시 훅 내부 시간도 0으로 리셋 (중요)
       syncPosition(0);
-      setNowTs(Date.now());
-      // [Mod] 트랙 변경 시 오토스크롤 다시 활성화
-      setAutoScrollEnabled(true);
       setLyricSelection(null);
     }
   }, [track?.id, syncPosition]);
@@ -219,7 +214,7 @@ function PlayerApp({
   const correctedMs = useMemo(() => {
     if (!track || !track.isPlaying) return hookEstimatedMs;
 
-    const timeSinceChange = nowTs - trackChangeTimeRef.current;
+    const timeSinceChange = Date.now() - trackChangeTimeRef.current;
 
     // 곡 초반 3초 동안은, 실제 흐른 시간보다 API 시간이 더 크면 '튀었다'고 보고 실제 시간 사용
     if (timeSinceChange < 3000) {
@@ -227,71 +222,46 @@ function PlayerApp({
     }
 
     return hookEstimatedMs;
-  }, [hookEstimatedMs, track, nowTs]);
+  }, [hookEstimatedMs, track]);
 
-  useEffect(() => {
-    if (!track?.isPlaying) return;
-
-    let animationFrameId: number;
-
-    const loop = () => {
-      setNowTs(Date.now());
-      animationFrameId = requestAnimationFrame(loop);
+  const reducedMotion = useReducedMotion() === true;
+  const amllLines = useMemo<AmllLine[]>(() => isSynced ? lyricItems.map((item, index) => {
+    const { line, displayText, sectionBreakCount, sourceIndex } = item;
+    const startTime = Math.max(0, line.start_ms);
+    const endTime = Math.max(startTime, line.end_ms > startTime
+      ? line.end_ms
+      : lyricItems[index + 1]?.line.start_ms ?? track?.durationMs ?? startTime);
+    const translation = line[translationKey];
+    return {
+      id: String(line.index ?? sourceIndex),
+      sectionBreakCount,
+      lyric: {
+        startTime, endTime,
+        words: [{ word: displayText, startTime, endTime }],
+        translatedLyric: typeof translation === "string" ? translation : "",
+        romanLyric: "",
+        isBG: false,
+        isDuet: false,
+      },
     };
+  }) : [], [isSynced, lyricItems, track?.durationMs, translationKey]);
 
-    animationFrameId = requestAnimationFrame(loop);
-
-    return () => cancelAnimationFrame(animationFrameId);
-  }, [track?.isPlaying]);
-
-
-  // 3. [핵심 수정] 가사 인덱스 결정 (단순화)
-  // 복잡한 Ratchet(뒤로 가기 방지) 로직을 제거했습니다.
-  // 화면에 표시되는 correctedMs를 믿고 그대로 가사를 찾습니다.
-  const activeIndex = useMemo(() => {
-    if (!isSynced) return null;
-    return findActiveLyricIndex(lyricItems, correctedMs);
-  }, [correctedMs, lyricItems, isSynced]);
-
-  // [New] 첫 소절 시작 시 오토스크롤 강제 활성화 (사용자가 건드렸더라도 노래 시작하면 잡아주기 위해)
-  useEffect(() => {
-    if (activeIndex === 0) {
-      setAutoScrollEnabled(true);
-    }
-  }, [activeIndex]);
-
-
-  // 오토스크롤 로직
-  useEffect(() => {
-    if (!autoScrollEnabled || activeIndex === null || !isSynced) return;
-
-    const container = lyricsContainerRef.current;
-    const activeElement = document.getElementById(`lyric-${activeIndex}`);
-
-    if (container && activeElement) {
-      requestAnimationFrame(() => {
-        const elementTop = activeElement.offsetTop;
-        const containerHeight = container.clientHeight;
-        const targetScroll = calculateLyricScrollTop({
-          elementTop,
-          containerHeight,
-          anchorRatio: lyricAnchorRatio,
-        });
-
-        if (Math.abs(container.scrollTop - targetScroll) < 10) return;
-
-        container.scrollTo({
-          top: targetScroll,
-          behavior: "smooth",
-        });
-      });
-    }
-  }, [activeIndex, annotationDensity, autoScrollEnabled, isSynced, lyricAnchorRatio, lyricItems, translationKey]);
+  const lyricAnnotations = useMemo(() => new Map(lyricItems.flatMap(({ line, sourceIndex }) => {
+    const id = String(line.index ?? sourceIndex);
+    if (!shouldShowLyricAnnotation(annotationDensity !== "off", requestedAnnotationLines.has(id))) return [];
+    const annotation = normalizeDisplayAnnotation(line.annotation);
+    if (!annotation) return [];
+    return [[id, (
+      <p lang={htmlLangForText(targetLang)} dir="auto"
+        className={`lyric-annotation text-start break-keep ${lineBreakClassForLang(targetLang)}`}>
+        {formatAnnotationLineBreaks(annotation, targetLang)}
+      </p>
+    )] as const];
+  })), [lyricItems, annotationDensity, requestedAnnotationLines, targetLang]);
 
   const captureLyricSelection = () => {
     const selection = readLyricAnnotationSelection(window.getSelection(), window.innerWidth);
     if (selection) {
-      setAutoScrollEnabled(false);
       clearAnnotationError();
     }
     setLyricSelection(selection);
@@ -328,7 +298,6 @@ function PlayerApp({
   const handleLyricClick = async (startTimeMs: number) => {
     if (!isSynced) return;
     if (window.getSelection()?.toString().trim()) return;
-    setAutoScrollEnabled(true);
     syncPosition(startTimeMs);
     await runPlayerCommand(() => seek(startTimeMs, playerSource));
   };
@@ -375,7 +344,7 @@ function PlayerApp({
       {/* 1. Background (Atmosphere) */}
       <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
         {track?.albumArt ? (
-          <AlbumBackground key={track.albumArt} src={track.albumArt} />
+          <AmllBackground src={track.albumArt} reducedMotion={reducedMotion} />
         ) : (
           <div className="h-full w-full bg-neutral-900" />
         )}
@@ -573,142 +542,75 @@ function PlayerApp({
             className="absolute bottom-0 left-0 right-0 h-20 bg-gradient-to-t from-black to-transparent z-40 pointer-events-none backdrop-blur-[2px] md:hidden"
             style={{ maskImage: "linear-gradient(to top, black, transparent)", WebkitMaskImage: "linear-gradient(to top, black, transparent)" }}
           />
-          <div
-            className="lyric-scroll-container flex-1 overflow-y-auto no-scrollbar scroll-smooth relative -ml-8 pl-8 z-10 mobile-lyrics-mask"
-            ref={lyricsContainerRef}
-            onMouseUp={captureLyricSelection}
-            onWheel={() => {
-              setAutoScrollEnabled(false);
-              setLyricSelection(null);
-            }}
-            onTouchStart={() => {
-              setAutoScrollEnabled(false);
-              setLyricSelection(null);
-            }}
-            style={{
-              maskImage: "linear-gradient(to bottom, transparent 0%, black 25%, black 100%)",
-              WebkitMaskImage: "linear-gradient(to bottom, transparent 0%, black 25%, black 100%)",
-            }}
-          >
+          {amllLines.length > 0 ? (
+            <AmllLyrics
+              key={`${playerSource}:${track?.id ?? ""}`}
+              lines={amllLines}
+              time={correctedMs}
+              playing={track?.isPlaying === true}
+              selectionPaused={lyricSelection !== null}
+              reducedMotion={reducedMotion}
+              anchor={lyricAnchorRatio}
+              translationLanguage={htmlLangForText(targetLang)}
+              annotations={lyricAnnotations}
+              onSeek={handleLyricClick}
+              onSelect={captureLyricSelection}
+              onBrowse={() => setLyricSelection(null)}
+            />
+          ) : (
             <div
-              className="lyric-stack flex flex-col items-start px-6 md:pl-0 md:pr-12 max-w-5xl mx-auto md:mx-0 text-left relative"
+              className="lyric-scroll-container flex-1 overflow-y-auto no-scrollbar relative -ml-8 pl-8 z-10 mobile-lyrics-mask"
+              onMouseUp={captureLyricSelection}
               style={{
-                paddingTop: `${lyricAnchorRatio * 100}dvh`,
-                paddingBottom: `${(1 - lyricAnchorRatio) * 100}dvh`,
+                maskImage: "linear-gradient(to bottom, transparent 0%, black 25%, black 100%)",
+                WebkitMaskImage: "linear-gradient(to bottom, transparent 0%, black 25%, black 100%)",
               }}
             >
-              {/* 모바일 상단 정보 블록: 스크롤과 함께 자연스럽게 위로 사라짐 */}
-              <div className="md:hidden w-full flex flex-col items-center text-center gap-4 mb-6">
-                {track?.albumArt && (
-                  <div className="w-[46vw] max-w-[220px] aspect-square rounded-[1.5rem] overflow-hidden shadow-[0_10px_35px_rgba(0,0,0,0.55)]">
-                    <img src={track.albumArt} className="w-full h-full object-cover" alt={t("albumArtwork")} />
+              <div
+                className="lyric-stack flex flex-col items-start px-6 md:pl-0 md:pr-12 max-w-5xl mx-auto md:mx-0 text-left relative"
+                style={{
+                  paddingTop: `${lyricAnchorRatio * 100}dvh`,
+                  paddingBottom: `${(1 - lyricAnchorRatio) * 100}dvh`,
+                }}
+              >
+                {/* 모바일 상단 정보 블록: 스크롤과 함께 자연스럽게 위로 사라짐 */}
+                <div className="md:hidden w-full flex flex-col items-center text-center gap-4 mb-6">
+                  {track?.albumArt && (
+                    <div className="w-[46vw] max-w-[220px] aspect-square rounded-[1.5rem] overflow-hidden shadow-[0_10px_35px_rgba(0,0,0,0.55)]">
+                      <img src={track.albumArt} className="w-full h-full object-cover" alt={t("albumArtwork")} />
+                    </div>
+                  )}
+                  <div className="space-y-1 px-4">
+                    <h2 className="text-2xl font-bold leading-tight drop-shadow-md line-clamp-2 text-white">{track?.title || t("noTrack")}</h2>
+                    <p className="text-lg text-white/60 drop-shadow-sm break-words">{track?.artist || t("unknownArtist")}</p>
                   </div>
-                )}
-                <div className="space-y-1 px-4">
-                  <h2 className="text-2xl font-bold leading-tight drop-shadow-md line-clamp-2 text-white">{track?.title || t("noTrack")}</h2>
-                  <p className="text-lg text-white/60 drop-shadow-sm line-clamp-1">{track?.artist || t("unknownArtist")}</p>
                 </div>
-              </div>
-              {lyricItems.length > 0 ? (
-                lyricItems.map(({ line, sourceIndex, displayText, sectionBreakCount }, index) => {
-                  const isActive = isSynced && index === activeIndex;
-                  const lyricDistance = activeIndex === null ? 0 : Math.abs(index - activeIndex);
-                  const blurMap = [0, 2, 3, 3.5, 4];
-                  const inactiveBlurPx = lyricDistance < blurMap.length ? blurMap[lyricDistance] : 4;
-                  const clickHandler = isSynced ? () => handleLyricClick(line.start_ms) : undefined;
-                  const translationText = (line as any)?.[translationKey] || (translationKey === "ko" ? line.ko : undefined);
-                  const annotation =
-                    shouldShowLyricAnnotation(annotationDensity !== "off", requestedAnnotationLines.has(String(line.index ?? sourceIndex)))
-                      ? normalizeDisplayAnnotation((line as any)?.annotation)
-                      : "";
-                  const annotationBody = annotation
-                    ? formatAnnotationLineBreaks(annotation, targetLang)
-                    : "";
-
-                  return (
-                    <motion.div
-                      key={line.index ?? sourceIndex}
-                      id={`lyric-${index}`}
-                      data-lyric-line-id={String(line.index ?? sourceIndex)}
-                      onClick={clickHandler}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{
-                        opacity: isActive || !isSynced || !autoScrollEnabled ? 1 : 0.5,
-                        scale: isActive ? 1.02 : 1,
-                        filter: isActive || !isSynced || !autoScrollEnabled ? "blur(0px)" : `blur(${inactiveBlurPx}px)`,
-                        y: 0,
-                      }}
-                      transition={{
-                        duration: 0.6,
-                        ease: [0.22, 1, 0.36, 1]
-                      }}
-                      style={{
-                        transformOrigin: "left center",
-                        willChange: "transform, opacity, filter",
-                        ...(sectionBreakCount > 0
-                          ? { marginTop: `${(index === 0 ? 0 : 2) + sectionBreakCount * 3}rem` }
-                          : {}),
-                      }}
-                      className={`w-full py-2 transition-colors duration-500 max-w-full break-words ${isSynced ? "cursor-pointer hover:opacity-60" : "cursor-default"}`}
-                    >
-                      <p
-                        data-annotation-selectable="true"
-                        style={{
-                          textWrap: "pretty",
-                          wordBreak: "keep-all",
-                          overflowWrap: "break-word"
-                        }}
-                        className={`
-                           lyric-original transition-colors duration-500 break-keep text-pretty
-                           ${isJa ? "lyrics-ja" : ""}
-                           ${isActive || !isSynced
-                            ? "text-white/90 mix-blend-plus-lighter"
-                            : "text-white/80"}
-                        `}>
-                        {displayText}
-                      </p>
-                      {translationText && (
-                        <p
-                          data-annotation-selectable="true"
-                          lang={htmlLangForText(targetLang)}
-                          dir="auto"
-                          className={`lyric-translation font-kor transition-colors duration-500 break-keep text-balance
-                                ${isActive || !isSynced ? "text-white/90" : "text-white/80"}
-                            `}
-                          style={{ textWrap: "pretty", wordBreak: "keep-all", overflowWrap: "break-word" }}>
-                          {translationText}
+                {lyricItems.length > 0 ? (
+                  lyricItems.map(({ line, sourceIndex, displayText, sectionBreakCount }, index) => {
+                    const translation = line[translationKey];
+                    const id = String(line.index ?? sourceIndex);
+                    return (
+                      <div key={id} data-lyric-line-id={id} className="w-full py-2"
+                        style={sectionBreakCount ? { marginTop: `${(index === 0 ? 0 : 2) + sectionBreakCount * 3}rem` } : undefined}>
+                        <p data-annotation-selectable="true" className={`lyric-original break-keep text-pretty text-white/90 ${isJa ? "lyrics-ja" : ""}`}>
+                          {displayText}
                         </p>
-                      )}
-                      {annotation && (
-                        <div
-                          className={`relative flex flex-col items-start mt-3.5 pl-4 transition-all duration-500`}
-                        >
-                          {/* Animated Glossy Glass Line */}
-                          <div className={`absolute left-0 top-0.5 bottom-0.5 w-[2.5px] rounded-full transition-opacity duration-500 ${isActive || !isSynced ? "opacity-100 glass-gloss-line" : "opacity-30 bg-white/20"}`} />
-
-                          <div className={`flex items-center gap-1.5 mb-1.5 transition-opacity duration-500 ${isActive || !isSynced ? "opacity-100" : "opacity-40"}`}>
-                            <span className="lyric-annotation-label text-white/60 uppercase">
-                              {t("behindTheLine")}
-                            </span>
-                          </div>
-
-                          <p
-                            lang={htmlLangForText(targetLang)}
-                            dir="auto"
-                            className={`lyric-annotation text-start break-keep text-balance transition-colors duration-500 ${lineBreakClassForLang(targetLang)} ${isActive || !isSynced ? "text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.15)]" : "text-white/50"}`}
-                          >
-                            {annotationBody}
+                        {typeof translation === "string" && translation && (
+                          <p data-annotation-selectable="true" lang={htmlLangForText(targetLang)} dir="auto"
+                            className="lyric-translation font-kor break-keep text-balance text-white/90">
+                            {translation}
                           </p>
-                        </div>
-                      )}
-                    </motion.div>
-                  )
-                })
-              ) : lyricsNotFound ? (
-                <p role="status" className="text-base text-white/65 md:hidden">{t("lyricsNotFound")}</p>
-              ) : null}
+                        )}
+                        {lyricAnnotations.get(id)}
+                      </div>
+                    );
+                  })
+                ) : lyricsNotFound ? (
+                  <p role="status" className="text-base text-white/65 md:hidden">{t("lyricsNotFound")}</p>
+                ) : null}
+              </div>
             </div>
-          </div>
+          )}
 
           {lyricSelection && (
             <div
@@ -718,11 +620,12 @@ function PlayerApp({
               <motion.button
                 type="button"
                 className="lyric-annotation-action"
-                initial={{ opacity: 0, scale: 0.86, y: 6 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
+                initial={reducedMotion ? false : { opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.12 }}
                 disabled={annotationPendingLineId !== null || updateInstalling}
-                aria-label={t("behindTheLine")}
-                title={`${t("behindTheLine")}: ${lyricSelection.selectedText}`}
+                aria-busy={annotationPendingLineId === lyricSelection.lineId}
+                aria-label={t(annotationPendingLineId === lyricSelection.lineId ? "explainingLyricSelection" : "explainLyricSelection")}
                 onMouseDown={(event) => {
                   event.preventDefault();
                   event.stopPropagation();
@@ -732,12 +635,8 @@ function PlayerApp({
                   void requestSelectionAnnotation();
                 }}
               >
-                {annotationPendingLineId === lyricSelection.lineId ? (
-                  <span className="lyric-annotation-spinner" aria-hidden="true" />
-                ) : (
-                  <Sparkles size={14} aria-hidden="true" />
-                )}
-                <span>{t("behindTheLine")}</span>
+                <span aria-hidden="true">{t("explainLyricSelection")}</span>
+                <span aria-hidden="true">{t("explainingLyricSelection")}</span>
               </motion.button>
             </div>
           )}

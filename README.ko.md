@@ -11,7 +11,7 @@
 
 <p align="center">
   <a href="https://github.com/kjsuo/songdocent/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/kjsuo/songdocent/ci.yml?branch=main&amp;style=plastic&amp;label=build" alt="Build status" /></a>
-  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-green?style=plastic" alt="License: MIT" /></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-AGPL--3.0-blue?style=plastic" alt="License: AGPL-3.0-only" /></a>
   <a href="https://github.com/kjsuo/songdocent"><img src="https://img.shields.io/github/stars/kjsuo/songdocent?style=plastic" alt="GitHub stars" /></a>
   <a href="https://buymeacoffee.com/kjsuo"><img src="https://img.shields.io/badge/Buy_Me_a_Coffee-support-ffdd00?style=plastic&amp;logo=buymeacoffee&amp;logoColor=white" alt="Support on Buy Me a Coffee" /></a>
 </p>
@@ -24,7 +24,7 @@
 </p>
 
 <p align="center">
-  macOS · Windows (Beta) &nbsp;|&nbsp; Tauri 2 · React · Rust &nbsp;|&nbsp; MIT
+  macOS · Windows (Beta) &nbsp;|&nbsp; Tauri 2 · React · Rust &nbsp;|&nbsp; AGPL-3.0-only
 </p>
 
 <p align="center">
@@ -262,4 +262,4 @@ API 키, 세션 쿠키, 이메일 등 개인정보가 포함된 로그나 스크
 
 ## 라이선스
 
-[MIT License](LICENSE). 포함된 폰트·아이콘 등 외부 자산에는 각각의 라이선스가 적용됩니다. 관련 고지는 [폰트 라이선스](public/fonts/Geist-LICENSE.txt), [공급자 로고 안내](public/provider-logos/README.md), [기타 라이선스](public/licenses/)에서 확인할 수 있습니다.
+[GNU AGPL v3.0 only (AGPL-3.0-only)](LICENSE). 포함된 폰트·아이콘 등 외부 자산에는 각각의 라이선스가 적용됩니다. 관련 고지는 [폰트 라이선스](public/fonts/Geist-LICENSE.txt), [공급자 로고 안내](public/provider-logos/README.md), [기타 라이선스](public/licenses/)에서 확인할 수 있습니다.

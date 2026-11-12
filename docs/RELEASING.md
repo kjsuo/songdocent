@@ -24,6 +24,22 @@ Preserve the license files, the intentional public contact address, and the unof
 
 Read [SECURITY.md](../SECURITY.md) before reporting a vulnerability.
 
+## Provide the license and corresponding source
+
+SongDocent is licensed under AGPL-3.0-only. Include the root `LICENSE` and
+`NOTICE` with distributed builds; Tauri bundles and the Windows portable archive
+are configured to include them. Preserve third-party license notices as well.
+
+Alongside every binary download, provide a clear link to the corresponding
+source for that exact release, including modifications and the build and
+installation scripts. Verify that recipients can download it without access to
+a private repository. If the repository is private, publish a reviewed source
+archive with the release. A public installer link alone does not provide access
+to a private repository's source archives.
+
+This change applies to new versions distributed under AGPL-3.0-only. Previously
+distributed MIT versions retain the permissions already granted under MIT.
+
 ## Check native behavior before distributing installers
 
 Passing unit tests and builds does not establish that provider login or playback works on a real installation. On each supported operating system, check:

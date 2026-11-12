@@ -11,7 +11,7 @@
 
 <p align="center">
   <a href="https://github.com/kjsuo/songdocent/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/kjsuo/songdocent/ci.yml?branch=main&amp;style=plastic&amp;label=build" alt="Build status" /></a>
-  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-green?style=plastic" alt="License: MIT" /></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-AGPL--3.0-blue?style=plastic" alt="License: AGPL-3.0-only" /></a>
   <a href="https://github.com/kjsuo/songdocent"><img src="https://img.shields.io/github/stars/kjsuo/songdocent?style=plastic" alt="GitHub stars" /></a>
   <a href="https://buymeacoffee.com/kjsuo"><img src="https://img.shields.io/badge/Buy_Me_a_Coffee-support-ffdd00?style=plastic&amp;logo=buymeacoffee&amp;logoColor=white" alt="Support on Buy Me a Coffee" /></a>
 </p>
@@ -24,7 +24,7 @@
 </p>
 
 <p align="center">
-  macOS · Windows (Beta) &nbsp;|&nbsp; Tauri 2 · React · Rust &nbsp;|&nbsp; MIT
+  macOS · Windows (Beta) &nbsp;|&nbsp; Tauri 2 · React · Rust &nbsp;|&nbsp; AGPL-3.0-only
 </p>
 
 <p align="center">
@@ -262,4 +262,4 @@ Não publique logs ou capturas de tela que contenham dados pessoais, como chaves
 
 ## Licença
 
-[MIT License](LICENSE). Recursos externos incluídos, como fontes e ícones, têm suas próprias licenças. Consulte os avisos em [Licença das fontes](public/fonts/Geist-LICENSE.txt), [Informações sobre os logotipos dos provedores](public/provider-logos/README.md) e [Outras licenças](public/licenses/).
+[GNU AGPL v3.0 only (AGPL-3.0-only)](LICENSE). Recursos externos incluídos, como fontes e ícones, têm suas próprias licenças. Consulte os avisos em [Licença das fontes](public/fonts/Geist-LICENSE.txt), [Informações sobre os logotipos dos provedores](public/provider-logos/README.md) e [Outras licenças](public/licenses/).

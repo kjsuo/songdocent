@@ -1,0 +1,10 @@
+SongDocent
+Copyright (c) 2026 kjsuo
+
+SongDocent is licensed under the GNU Affero General Public License,
+version 3 only (SPDX-License-Identifier: AGPL-3.0-only).
+See LICENSE for the full license text.
+
+Third-party dependencies and bundled assets retain their own copyright
+notices and licenses. See public/licenses/, public/fonts/Geist-LICENSE.txt,
+and public/provider-logos/LICENSE.

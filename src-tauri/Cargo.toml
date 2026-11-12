@@ -3,7 +3,7 @@ name = "songdocent"
 version = "0.1.1"
 description = "SongDocent cross-platform desktop app"
 authors = ["SongDocent"]
-license = "MIT"
+license = "AGPL-3.0-only"
 repository = "https://github.com/kjsuo/songdocent"
 edition = "2021"
 

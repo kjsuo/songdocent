@@ -35,6 +35,7 @@
     "test:text-breaks": "vitest run src/textBreaks.test.ts"
   },
   "dependencies": {
+    "@applemusic-like-lyrics/core": "0.6.0",
     "@tailwindcss/vite": "^4.3.0",
     "@tauri-apps/api": "^2.9.0",
     "@tauri-apps/plugin-opener": "^2.5.4",
@@ -66,5 +67,5 @@
     "type": "git",
     "url": "https://github.com/kjsuo/songdocent.git"
   },
-  "license": "MIT"
+  "license": "AGPL-3.0-only"
 }

@@ -11,7 +11,12 @@
   },
   "bundle": {
     "active": true,
-    "category": "Music"
+    "category": "Music",
+    "license": "AGPL-3.0-only",
+    "resources": {
+      "../LICENSE": "LICENSE",
+      "../NOTICE": "NOTICE"
+    }
   },
   "plugins": {
     "updater": {
