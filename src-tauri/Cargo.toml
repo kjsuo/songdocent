@@ -1,6 +1,6 @@
 [package]
 name = "songdocent"
-version = "0.1.1"
+version = "0.1.2"
 description = "SongDocent cross-platform desktop app"
 authors = ["SongDocent"]
 license = "AGPL-3.0-only"
